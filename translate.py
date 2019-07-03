@@ -29,7 +29,6 @@ class Translate:
         # confluence에 로그인을 한다
         # 아이디와 패스워드를 작성하고
         # 로그인 버튼을 클릭한다
-        # self.driver.get(config.__HOMEPAGE+'/pages/viewpage.action?pageId=625781')
         self.driver.get(self.HPAGE + '/pages/viewpage.action?pageId=625781')
         self.driver.implicitly_wait(1)
         id = self.driver.find_element_by_xpath('''//*[@id="os_username"]''')
@@ -39,7 +38,7 @@ class Translate:
         self.driver.find_element_by_xpath('''//*[@id="loginButton"]''').click()
         self.driver.implicitly_wait(1)
 
-    def get_urls(self):
+    def process_work(self):
         # 03. 패키지요청서를 클릭하고
         # 그 안에서 a tag들을 가지고 와서 url_list에 담는다
         self.driver.find_element_by_xpath('''//*[@id="childrenspan4195615-0"]/a''').click()
@@ -57,7 +56,7 @@ class Translate:
             # 해당 페이지에 릴리즈 노트가 있고 번역해야할 앱 이름들이 있으면 번역을 실시한다
             # 다음페이지로 넘어가기 전에 리스트를 비워준다
             if self.check_translation_needed(soup):
-                self.process_work()
+                self.translate_and_change_words()
             self.origin_words = []
             self.translated_words = []
 
@@ -100,7 +99,7 @@ class Translate:
 
     # 번역을 하고
     # 그 이후에 편집을 통해 단어들을 대체한다
-    def process_work(self):
+    def translate_and_change_words(self):
         self.make_translation()
 
         time.sleep(1)
@@ -135,14 +134,18 @@ class Translate:
                 th = ""
                 try:
                     th = t.find_elements_by_class_name('confluenceTh')[0]
+                    cond2_1 = ("모델 정보" not in th.text and "버그" not in th.text)
+                    cond2_2 = ("앱" in th.text and "한글" in th.text)
                 except IndexError:
                     indexErr = True
                 td = t.find_elements_by_class_name('confluenceTd')[0]
 
                 # table마다 th 혹은 td로 시작하는 것이 달라서 다르게 표현을 했다
-                if indexErr and ("모델 정보" not in td.text and "버그" not in td.text) and ("앱" in td.text and "한글" in td.text):
+                cond1_1 = ("모델 정보" not in td.text and "버그" not in td.text)
+                cond1_2 = ("앱" in td.text and "한글" in td.text)
+                if indexErr and cond1_1 and cond1_2:
                     table_to_change = "TD"
-                elif ("모델 정보" not in td.text and "버그" not in th.text) and ("앱" in th.text and "한글" in th.text):
+                elif cond2_1 and cond2_2:
                     table_to_change = "TH"
 
 
@@ -166,5 +169,5 @@ if __name__ == "__main__":
     start_time = time.time()
     trans = Translate(config.__ID, config.__PASSWORD, config.__HOMEPAGE)
     trans.login_to_confluence()
-    trans.get_urls()
+    trans.process_work()
     print("--- %s seconds ---" % (time.time() - start_time))
